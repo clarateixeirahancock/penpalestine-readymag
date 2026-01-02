@@ -5,13 +5,14 @@ const PRODUCTS = {
 };
 
 export async function handler(event, context) {
+  // ✅ CORS headers
   const headers = {
-    "Access-Control-Allow-Origin": "*", // temporary for testing
+    "Access-Control-Allow-Origin": "https://my.readymag.com", // your Readymag URL
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   };
 
-  // Handle preflight
+  // Handle preflight OPTIONS requests
   if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 200,
