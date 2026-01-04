@@ -2,7 +2,7 @@
 import Stripe from "stripe";
 
 const PRODUCTS = {
-  poster_a2: { name: "Poster A2", price: 2500, weight: 0.4 },
+  theydidntknowwewereseeds: { name: "theydidntknowwewereseeds", price: 5, weight: 0.1 },
 };
 
 export async function handler(event, context) {
