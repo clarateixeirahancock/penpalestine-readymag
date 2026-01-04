@@ -1,83 +1,64 @@
-// redploying for enbironment key//
-import Stripe from "stripe";
+const Stripe = require("stripe");
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 const PRODUCTS = {
   theydidntknowwewereseeds: {
-    name: "theydidntknowwewereseeds",
-    price: "price_1SltMXLp5l1JmABsZREYzvaM",
-    weight: 0.1
+    price: "price_1SltMXLp5l1JmABsZREYzvaM"
   }
 };
 
-export async function handler(event, context) {
-  // ✅ CORS headers
+exports.handler = async (event) => {
   const headers = {
-    "Access-Control-Allow-Origin": "https://my.readymag.com", // your Readymag URL
+    "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "POST, OPTIONS"
   };
 
-  // Handle preflight OPTIONS requests
   if (event.httpMethod === "OPTIONS") {
-    return {
-      statusCode: 200,
-      headers,
-      body: "",
-    };
+    return { statusCode: 200, headers };
   }
 
   try {
-    console.log("Stripe key exists:", !!process.env.STRIPE_SECRET_KEY);
+    const { items } = JSON.parse(event.body || "{}");
 
-    if (!process.env.STRIPE_SECRET_KEY) {
-      throw new Error("Stripe secret key not found");
-    }
-
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-    const body = JSON.parse(event.body || "{}");
-    const { items } = body;
-
-    if (!items || !Array.isArray(items) || items.length === 0) {
+    if (!items || items.length === 0) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: "No items sent" }),
+        body: JSON.stringify({ error: "No items sent" })
       };
     }
 
-    const lineItems = items.map((item) => {
+    const line_items = items.map((item) => {
       const product = PRODUCTS[item.id];
-      if (!product) throw new Error(`Unknown product ID: ${item.id}`);
+      if (!product) {
+        throw new Error(`Unknown product: ${item.id}`);
+      }
+
       return {
-        price_data: {
-          currency: "usd",
-          product_data: { name: product.name },
-          unit_amount: product.price,
-        },
-        quantity: item.quantity,
+        price: product.price,
+        quantity: item.quantity
       };
     });
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      payment_method_types: ["card"],
-      line_items: lineItems,
-      success_url: "https://yourreadymagsite.com/success",
-      cancel_url: "https://yourreadymagsite.com/cancel",
+      line_items,
+      success_url: "https://your-site.com/success",
+      cancel_url: "https://your-site.com/cancel"
     });
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ url: session.url }),
+      body: JSON.stringify({ url: session.url })
     };
   } catch (err) {
-    console.error(err);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: err.message }),
+      body: JSON.stringify({ error: err.message })
     };
   }
-}
+};
+
