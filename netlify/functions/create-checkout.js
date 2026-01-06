@@ -3,8 +3,23 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 const PRODUCTS = {
   theydidntknowwewereseeds: {
-    price: "price_1SltMXLp5l1JmABsZREYzvaM"
+    price: "price_1SltMXLp5l1JmABsZREYzvaM",
+    weight: 0.05 // kg (10 postcards)
   }
+};
+
+// Replace ALL of these with REAL Stripe shipping_rate IDs
+const SHIPPING_RATES = {
+  GB: [
+    { maxWeight: 0.05, rate: "shr_GB_10" },
+    { maxWeight: 0.10, rate: "shr_GB_20" },
+    { maxWeight: 0.20, rate: "shr_GB_40" }
+  ],
+  WW: [
+    { maxWeight: 0.05, rate: "shr_WW_10" },
+    { maxWeight: 0.10, rate: "shr_WW_20" },
+    { maxWeight: 0.20, rate: "shr_WW_40" }
+  ]
 };
 
 exports.handler = async (event) => {
@@ -19,7 +34,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { items } = JSON.parse(event.body || "{}");
+    const { items, shipping_country = "GB" } = JSON.parse(event.body || "{}");
 
     if (!items || items.length === 0) {
       return {
@@ -29,11 +44,12 @@ exports.handler = async (event) => {
       };
     }
 
-    const line_items = items.map((item) => {
+    let totalWeight = 0;
+
+    const line_items = items.map(item => {
       const product = PRODUCTS[item.id];
-      if (!product) {
-        throw new Error(`Unknown product: ${item.id}`);
-      }
+      if (!product) throw new Error(`Unknown product: ${item.id}`);
+      totalWeight += product.weight * item.quantity;
 
       return {
         price: product.price,
@@ -41,9 +57,19 @@ exports.handler = async (event) => {
       };
     });
 
+    const rates = SHIPPING_RATES[shipping_country === "GB" ? "GB" : "WW"];
+    const shipping = rates.find(r => totalWeight <= r.maxWeight);
+
+    if (!shipping) {
+      throw new Error("No valid shipping rate found");
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items,
+      shipping_options: [
+        { shipping_rate: shipping.rate }
+      ],
       success_url: "https://your-site.com/success",
       cancel_url: "https://your-site.com/cancel"
     });
@@ -53,7 +79,9 @@ exports.handler = async (event) => {
       headers,
       body: JSON.stringify({ url: session.url })
     };
+
   } catch (err) {
+    console.error(err);
     return {
       statusCode: 500,
       headers,
