@@ -1,11 +1,10 @@
-// create-checkout.js
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 // Define your products, including weight (in kg)
 const PRODUCTS = {
   theydidntknowwewereseeds: { 
-    price: "shr_1SmepTLp5l1JmABsJzFF773I", // Stripe price ID
-    weight: 0.1 // kg
+    price: "price_1SltMXLp5l1JmABsZREYzvaM", // Stripe price ID
+    weight: 0.05 // kg
   },
   another_product: {
     price: "price_1SltMX…", 
@@ -13,22 +12,26 @@ const PRODUCTS = {
   }
 };
 
-// Define your shipping rates by weight
+// Shipping thresholds based on total weight and destination
 const SHIPPING_RATES = [
-  { maxWeight: 0.5, shipping_rate: "shr_STANDARD_ID" },  // <= 0.5kg
-  { maxWeight: 1, shipping_rate: "shr_EXPRESS_ID" },     // <= 1kg
-  { maxWeight: 10, shipping_rate: "shr_HEAVY_ID" }       // <=10kg
+  { maxWeight: 0.05, country: "GB", shipping_rate: "shr_1SmepTLp5l1JmABsJzFF773I" },    // 10 postcards UK
+  { maxWeight: 0.10, country: "GB", shipping_rate: "shr_uk_20" },    // 20 postcards UK
+  { maxWeight: 0.20, country: "GB", shipping_rate: "shr_uk_40" },    // 40 postcards UK
+  { maxWeight: 0.05, country: "WW", shipping_rate: "shr_1Smeq6Lp5l1JmABsxxy2qNRv" }, // 10 postcards worldwide
+  { maxWeight: 0.10, country: "WW", shipping_rate: "shr_world_20" }, // 20 postcards worldwide
+  { maxWeight: 0.20, country: "WW", shipping_rate: "shr_world_40" }  // 40 postcards worldwide
 ];
 
 exports.handler = async function(event, context) {
   try {
-    const { items } = JSON.parse(event.body);
+    const { items, shipping_country } = JSON.parse(event.body); 
+    // shipping_country = "GB" or "WW" sent from frontend
 
     if (!items || !items.length) {
       return { statusCode: 400, body: JSON.stringify({ error: "No items sent" }) };
     }
 
-    // Create line items for Stripe
+    // Build line items
     const line_items = items.map(item => {
       const product = PRODUCTS[item.id];
       if (!product) throw new Error(`Unknown product ID: ${item.id}`);
@@ -45,31 +48,31 @@ exports.handler = async function(event, context) {
       totalWeight += product.weight * item.quantity;
     });
 
-    // Pick shipping rate based on total weight
-    let shippingOption = SHIPPING_RATES.find(rate => totalWeight <= rate.maxWeight);
+    // Find the correct shipping rate
+    let shippingOption = SHIPPING_RATES.find(rate => 
+      totalWeight <= rate.maxWeight && 
+      ((shipping_country === "GB" && rate.country === "GB") ||
+       (shipping_country !== "GB" && rate.country === "WW"))
+    );
+
     if (!shippingOption) {
-      shippingOption = SHIPPING_RATES[SHIPPING_RATES.length - 1]; // fallback to heaviest rate
+      shippingOption = SHIPPING_RATES[SHIPPING_RATES.length - 1]; // fallback
     }
 
-    // Create Stripe Checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items,
       mode: "payment",
-      shipping_options: [
-        { shipping_rate: shippingOption.shipping_rate }
-      ],
+      shipping_options: [{ shipping_rate: shippingOption.shipping_rate }],
       success_url: "https://your-site.com/success",
       cancel_url: "https://your-site.com/cancel"
     });
 
     return { statusCode: 200, body: JSON.stringify({ url: session.url }) };
-    
+
   } catch (err) {
     console.error(err);
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
 };
-
-
 
