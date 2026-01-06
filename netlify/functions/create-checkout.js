@@ -5,22 +5,18 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 // Products with weights
 const PRODUCTS = {
   theydidntknowwewereseeds: { price: "price_1SltMXLp5l1JmABsZREYzvaM", weight: 0.05 },
-  another_product: { price: "price_XXXX", weight: 0.1 } // add more if needed
+  another_product: { price: "price_XXXX", weight: 0.1 } // add more as needed
 };
 
-// Shipping rates
-const SHIPPING_RATES = {
-  GB: [
-    { maxWeight: 0.05, rate: "shr_1SmepTLp5l1JmABsJzFF773I" },
-    { maxWeight: 0.10, rate: "shr_1Smes2Lp5l1JmABs2eSRdmI9" },
-    { maxWeight: 0.20, rate: "shr_1SmgR0Lp5l1JmABsJVkE4raC" }
-  ],
-  WW: [
-    { maxWeight: 0.05, rate: "shr_1Smeq6Lp5l1JmABsxxy2qNRv" },
-    { maxWeight: 0.10, rate: "shr_1SmgQgLp5l1JmABssFDuJ3Nn" },
-    { maxWeight: 0.20, rate: "shr_1SmgRJLp5l1JmABsc7qmBqit" }
-  ]
-};
+// Shipping rates: send both UK and WW so Stripe chooses automatically
+const SHIPPING_RATES = [
+  { maxWeight: 0.05, rate: "shr_1SmepTLp5l1JmABsJzFF773I", countries: ["GB"] },
+  { maxWeight: 0.10, rate: "shr_1Smes2Lp5l1JmABs2eSRdmI9", countries: ["GB"] },
+  { maxWeight: 0.20, rate: "shr_1SmgR0Lp5l1JmABsJVkE4raC", countries: ["GB"] },
+  { maxWeight: 0.05, rate: "shr_1Smeq6Lp5l1JmABsxxy2qNRv", countries: [] }, // worldwide
+  { maxWeight: 0.10, rate: "shr_1SmgQgLp5l1JmABssFDuJ3Nn", countries: [] },
+  { maxWeight: 0.20, rate: "shr_1SmgRJLp5l1JmABsc7qmBqit", countries: [] }
+];
 
 exports.handler = async (event) => {
   const headers = {
@@ -31,7 +27,7 @@ exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers };
 
   try {
-    const { items, shipping_country } = JSON.parse(event.body || "{}");
+    const { items } = JSON.parse(event.body || "{}");
 
     if (!items || items.length === 0) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: "No items sent" }) };
@@ -51,16 +47,15 @@ exports.handler = async (event) => {
       totalWeight += product.weight * item.quantity;
     });
 
-    // Pick the right shipping rate for the country
-    const country = shipping_country === "GB" ? "GB" : "WW";
-    let shippingOption = SHIPPING_RATES[country].find(rate => totalWeight <= rate.maxWeight);
-    if (!shippingOption) shippingOption = SHIPPING_RATES[country][SHIPPING_RATES[country].length - 1]; // fallback
+    // Pick all shipping rates that fit total weight
+    const shipping_options = SHIPPING_RATES.filter(rate => totalWeight <= rate.maxWeight)
+                                           .map(rate => ({ shipping_rate: rate.rate }));
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items,
       mode: "payment",
-      shipping_options: [{ shipping_rate: shippingOption.rate }],
+      shipping_options,
       success_url: "https://your-site.com/success",
       cancel_url: "https://your-site.com/cancel"
     });
