@@ -1,22 +1,21 @@
-// netlify/functions/create-checkout.js
-const Stripe = require("stripe");
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
-// Products with weights (kg)
 const PRODUCTS = {
-  theydidntknowwewereseeds: { price: "price_1SltMXLp5l1JmABsZREYzvaM", weight: 0.05 },
-  another_product: { price: "price_XXXX", weight: 0.1 } // add more products if needed
+  theydidntknowwewereseeds: { price: "price_1SltMXLp5l1JmABsZREYzvaM", weight: 0.05 }
 };
 
-// Shipping rates
-const SHIPPING_RATES = [
-  { maxWeight: 0.05, countries: ["GB"], rate: "shr_1SmepTLp5l1JmABsJzFF773I" },   // 10 postcards UK
-  { maxWeight: 0.10, countries: ["GB"], rate: "shr_1Smes2Lp5l1JmABs2eSRdmI9" },  // 20 postcards UK
-  { maxWeight: 0.20, countries: ["GB"], rate: "shr_1SmgR0Lp5l1JmABsJVkE4raC" },  // 40 postcards UK
-  { maxWeight: 0.05, countries: [], rate: "shr_1Smeq6Lp5l1JmABsxxy2qNRv" },      // 10 postcards Worldwide
-  { maxWeight: 0.10, countries: [], rate: "shr_1SmgQgLp5l1JmABssFDuJ3Nn" },      // 20 postcards Worldwide
-  { maxWeight: 0.20, countries: [], rate: "shr_1SmgRJLp5l1JmABsc7qmBqit" }       // 40 postcards Worldwide
-];
+const SHIPPING_RATES = {
+  GB: [
+    { maxWeight: 0.05, rate: "shr_1SmepTLp5l1JmABsJzFF773I" },
+    { maxWeight: 0.10, rate: "shr_1Smes2Lp5l1JmABs2eSRdmI9" },
+    { maxWeight: 0.20, rate: "shr_1SmgR0Lp5l1JmABsJVkE4raC" }
+  ],
+  WW: [
+    { maxWeight: 0.05, rate: "shr_1Smeq6Lp5l1JmABsxxy2qNRv" },
+    { maxWeight: 0.10, rate: "shr_1SmgQgLp5l1JmABssFDuJ3Nn" },
+    { maxWeight: 0.20, rate: "shr_1SmgRJLp5l1JmABsc7qmBqit" }
+  ]
+};
 
 exports.handler = async (event) => {
   const headers = {
@@ -24,42 +23,37 @@ exports.handler = async (event) => {
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "POST, OPTIONS"
   };
+
   if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers };
 
   try {
-    const { items, shipping_country } = JSON.parse(event.body || "{}");
-    if (!items || !items.length) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: "No items sent" }) };
-    }
-
-    // Build line items
-    const line_items = items.map(item => {
-      const product = PRODUCTS[item.id];
-      if (!product) throw new Error(`Unknown product: ${item.id}`);
-      return { price: product.price, quantity: item.quantity };
-    });
+    const { items } = JSON.parse(event.body || "{}");
+    if (!items || !items.length) return { statusCode: 400, headers, body: JSON.stringify({ error: "No items sent" }) };
 
     // Calculate total weight
     let totalWeight = 0;
-    items.forEach(item => {
-      totalWeight += PRODUCTS[item.id].weight * item.quantity;
+    const line_items = items.map(item => {
+      const product = PRODUCTS[item.id];
+      if (!product) throw new Error(`Unknown product: ${item.id}`);
+      totalWeight += product.weight * item.quantity;
+      return { price: product.price, quantity: item.quantity };
     });
 
-    // Select shipping rate based on weight and country
-    let shippingOption = SHIPPING_RATES.find(rate =>
-      totalWeight <= rate.maxWeight &&
-      (rate.countries.includes(shipping_country) || (rate.countries.length === 0 && shipping_country !== "GB"))
-    );
+    // Filter shipping options by weight
+    const shipping_options = [];
+    Object.keys(SHIPPING_RATES).forEach(country => {
+      SHIPPING_RATES[country].forEach(rate => {
+        if (rate.maxWeight >= totalWeight) shipping_options.push({ shipping_rate: rate.rate });
+      });
+    });
 
-    if (!shippingOption) {
-      shippingOption = SHIPPING_RATES[SHIPPING_RATES.length - 1]; // fallback
-    }
-
+    // Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items,
+      shipping_address_collection: { allowed_countries: ["GB","US","CA","AU","FR","DE"] },
+      shipping_options,
       mode: "payment",
-      shipping_options: [{ shipping_rate: shippingOption.rate }],
       success_url: "https://your-site.com/success",
       cancel_url: "https://your-site.com/cancel"
     });
