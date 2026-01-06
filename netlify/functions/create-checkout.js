@@ -4,11 +4,10 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 const PRODUCTS = {
   theydidntknowwewereseeds: {
     price: "price_1SltMXLp5l1JmABsZREYzvaM",
-    weight: 0.05 // kg (10 postcards)
+    weight: 0.05
   }
 };
 
-// Replace ALL of these with REAL Stripe shipping_rate IDs
 const SHIPPING_RATES = {
   GB: [
     { maxWeight: 0.05, rate: "shr_1SmepTLp5l1JmABsJzFF773I" },
@@ -29,8 +28,12 @@ exports.handler = async (event) => {
     "Access-Control-Allow-Methods": "POST, OPTIONS"
   };
 
+  // ✅ THIS IS THE CRITICAL PART
   if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 200, headers };
+    return {
+      statusCode: 200,
+      headers
+    };
   }
 
   try {
@@ -49,6 +52,7 @@ exports.handler = async (event) => {
     const line_items = items.map(item => {
       const product = PRODUCTS[item.id];
       if (!product) throw new Error(`Unknown product: ${item.id}`);
+
       totalWeight += product.weight * item.quantity;
 
       return {
@@ -89,4 +93,3 @@ exports.handler = async (event) => {
     };
   }
 };
-
