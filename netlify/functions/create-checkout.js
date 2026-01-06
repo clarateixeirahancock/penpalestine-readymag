@@ -11,14 +11,14 @@ const PRODUCTS = {
 // Replace ALL of these with REAL Stripe shipping_rate IDs
 const SHIPPING_RATES = {
   GB: [
-    { maxWeight: 0.05, rate: "shr_GB_10" },
-    { maxWeight: 0.10, rate: "shr_GB_20" },
-    { maxWeight: 0.20, rate: "shr_GB_40" }
+    { maxWeight: 0.05, rate: "shr_1SmepTLp5l1JmABsJzFF773I" },
+    { maxWeight: 0.10, rate: "shr_1Smes2Lp5l1JmABs2eSRdmI9" },
+    { maxWeight: 0.20, rate: "shr_1SmgR0Lp5l1JmABsJVkE4raC" }
   ],
   WW: [
-    { maxWeight: 0.05, rate: "shr_WW_10" },
-    { maxWeight: 0.10, rate: "shr_WW_20" },
-    { maxWeight: 0.20, rate: "shr_WW_40" }
+    { maxWeight: 0.05, rate: "shr_1Smeq6Lp5l1JmABsxxy2qNRv" },
+    { maxWeight: 0.10, rate: "shr_1SmgQgLp5l1JmABssFDuJ3Nn" },
+    { maxWeight: 0.20, rate: "shr_1SmgRJLp5l1JmABsc7qmBqit" }
   ]
 };
 
@@ -89,3 +89,4 @@ exports.handler = async (event) => {
     };
   }
 };
+
