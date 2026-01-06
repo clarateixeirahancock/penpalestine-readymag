@@ -1,12 +1,12 @@
 const Stripe = require("stripe");
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Single product
+// Your product(s)
 const PRODUCTS = {
   theydidntknowwewereseeds: { price: "price_1SltMXLp5l1JmABsZREYzvaM" }
 };
 
-// All shipping rates (GB + Worldwide)
+// All shipping rates (UK + Worldwide)
 const SHIPPING_RATES = [
   { shipping_rate: "shr_1SmepTLp5l1JmABsJzFF773I" }, // 10 postcards UK
   { shipping_rate: "shr_1Smes2Lp5l1JmABs2eSRdmI9" }, // 20 postcards UK
@@ -32,11 +32,7 @@ exports.handler = async (event) => {
     const { items } = JSON.parse(event.body || "{}");
 
     if (!items || items.length === 0) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: "No items sent" })
-      };
+      return { statusCode: 400, headers, body: JSON.stringify({ error: "No items sent" }) };
     }
 
     // Build line items
@@ -52,8 +48,8 @@ exports.handler = async (event) => {
       payment_method_types: ["card"],
       line_items,
       shipping_options: SHIPPING_RATES,
-      success_url: "https://your-site.com/success",
-      cancel_url: "https://your-site.com/cancel"
+      success_url: "https://your-site.com/success", // placeholder
+      cancel_url: "https://your-site.com/cancel"    // placeholder
     });
 
     return { statusCode: 200, headers, body: JSON.stringify({ url: session.url }) };
