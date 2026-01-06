@@ -1,12 +1,12 @@
 const Stripe = require("stripe");
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Products with weights in kg (optional, for your reference)
+// Define your products with Stripe price IDs
 const PRODUCTS = {
   theydidntknowwewereseeds: { price: "price_1SltMXLp5l1JmABsZREYzvaM" }
 };
 
-// Shipping rates
+// All shipping rates (Stripe will pick based on customer's address)
 const SHIPPING_RATES = {
   GB: [
     { maxWeight: 0.05, rate: "shr_1SmepTLp5l1JmABsJzFF773I" },
@@ -27,7 +27,6 @@ exports.handler = async (event) => {
     "Access-Control-Allow-Methods": "POST, OPTIONS"
   };
 
-  // Handle preflight
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 200, headers };
   }
@@ -48,13 +47,12 @@ exports.handler = async (event) => {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items,
-      shipping_options: SHIPPING_RATES, // send all rates
+      shipping_options: SHIPPING_RATES,
       success_url: "https://your-site.com/success",
       cancel_url: "https://your-site.com/cancel"
     });
 
     return { statusCode: 200, headers, body: JSON.stringify({ url: session.url }) };
-
   } catch (err) {
     console.error(err);
     return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
