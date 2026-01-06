@@ -1,14 +1,12 @@
-// netlify/functions/create-checkout.js
 const Stripe = require("stripe");
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Products with weights
 const PRODUCTS = {
-  theydidntknowwewereseeds: { price: "price_1SltMXLp5l1JmABsZREYzvaM", weight: 0.05 },
-  another_product: { price: "price_XXXX", weight: 0.1 } // add more as needed
+  theydidntknowwewereseeds: { price: "price_1SltMXLp5l1JmABsZREYzvaM", weight: 0.05 }
 };
 
-// Shipping rates: send both UK and WW so Stripe chooses automatically
+// Shipping rates
 const SHIPPING_RATES = [
   { maxWeight: 0.05, rate: "shr_1SmepTLp5l1JmABsJzFF773I", countries: ["GB"] },
   { maxWeight: 0.10, rate: "shr_1Smes2Lp5l1JmABs2eSRdmI9", countries: ["GB"] },
@@ -28,7 +26,6 @@ exports.handler = async (event) => {
 
   try {
     const { items } = JSON.parse(event.body || "{}");
-
     if (!items || items.length === 0) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: "No items sent" }) };
     }
@@ -40,16 +37,17 @@ exports.handler = async (event) => {
       return { price: product.price, quantity: item.quantity };
     });
 
-    // Calculate total weight
+    // Total weight
     let totalWeight = 0;
     items.forEach(item => {
-      const product = PRODUCTS[item.id];
-      totalWeight += product.weight * item.quantity;
+      totalWeight += PRODUCTS[item.id].weight * item.quantity;
     });
 
-    // Pick all shipping rates that fit total weight
-    const shipping_options = SHIPPING_RATES.filter(rate => totalWeight <= rate.maxWeight)
-                                           .map(rate => ({ shipping_rate: rate.rate }));
+    // Pick only shipping options that match the weight (max 5)
+    const shipping_options = SHIPPING_RATES
+      .filter(rate => totalWeight <= rate.maxWeight)
+      .slice(0, 5) // ensures max 5
+      .map(rate => ({ shipping_rate: rate.rate }));
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
