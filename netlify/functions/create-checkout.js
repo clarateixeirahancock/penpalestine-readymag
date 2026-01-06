@@ -4,7 +4,7 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 // Define your products, including weight (in kg)
 const PRODUCTS = {
   theydidntknowwewereseeds: { 
-    price: "price_1SltMXLp5l1JmABsZREYzvaM", // Stripe price ID
+    price: "shr_1SmepTLp5l1JmABsJzFF773I", // Stripe price ID
     weight: 0.1 // kg
   },
   another_product: {
