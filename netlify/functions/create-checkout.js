@@ -1,19 +1,21 @@
+// netlify/functions/create-checkout.js
 const Stripe = require("stripe");
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Products with weights
+// Products with weight in kg
 const PRODUCTS = {
-  theydidntknowwewereseeds: { price: "price_1SltMXLp5l1JmABsZREYzvaM", weight: 0.05 }
+  theydidntknowwewereseeds: { price: "price_1SltMXLp5l1JmABsZREYzvaM", weight: 0.05 },
+  another_product: { price: "price_XXXX", weight: 0.1 } // add more products as needed
 };
 
 // Shipping rates
 const SHIPPING_RATES = [
-  { maxWeight: 0.05, rate: "shr_1SmepTLp5l1JmABsJzFF773I", countries: ["GB"] },
-  { maxWeight: 0.10, rate: "shr_1Smes2Lp5l1JmABs2eSRdmI9", countries: ["GB"] },
-  { maxWeight: 0.20, rate: "shr_1SmgR0Lp5l1JmABsJVkE4raC", countries: ["GB"] },
-  { maxWeight: 0.05, rate: "shr_1Smeq6Lp5l1JmABsxxy2qNRv", countries: [] }, // worldwide
-  { maxWeight: 0.10, rate: "shr_1SmgQgLp5l1JmABssFDuJ3Nn", countries: [] },
-  { maxWeight: 0.20, rate: "shr_1SmgRJLp5l1JmABsc7qmBqit", countries: [] }
+  { maxWeight: 0.05, countries: ["GB"], rate: "shr_1SmepTLp5l1JmABsJzFF773I" },   // 10 postcards UK
+  { maxWeight: 0.10, countries: ["GB"], rate: "shr_1Smes2Lp5l1JmABs2eSRdmI9" },  // 20 postcards UK
+  { maxWeight: 0.20, countries: ["GB"], rate: "shr_1SmgR0Lp5l1JmABsJVkE4raC" },  // 40 postcards UK
+  { maxWeight: 0.05, countries: [], rate: "shr_1Smeq6Lp5l1JmABsxxy2qNRv" },      // 10 postcards Worldwide
+  { maxWeight: 0.10, countries: [], rate: "shr_1SmgQgLp5l1JmABssFDuJ3Nn" },      // 20 postcards Worldwide
+  { maxWeight: 0.20, countries: [], rate: "shr_1SmgRJLp5l1JmABsc7qmBqit" }       // 40 postcards Worldwide
 ];
 
 exports.handler = async (event) => {
@@ -26,7 +28,7 @@ exports.handler = async (event) => {
 
   try {
     const { items } = JSON.parse(event.body || "{}");
-    if (!items || items.length === 0) {
+    if (!items || !items.length) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: "No items sent" }) };
     }
 
@@ -37,17 +39,22 @@ exports.handler = async (event) => {
       return { price: product.price, quantity: item.quantity };
     });
 
-    // Total weight
+    // Calculate total weight
     let totalWeight = 0;
     items.forEach(item => {
       totalWeight += PRODUCTS[item.id].weight * item.quantity;
     });
 
-    // Pick only shipping options that match the weight (max 5)
-    const shipping_options = SHIPPING_RATES
-      .filter(rate => totalWeight <= rate.maxWeight)
-      .slice(0, 5) // ensures max 5
-      .map(rate => ({ shipping_rate: rate.rate }));
+    // Find shipping rates that match weight
+    // UK first
+    const ukRate = SHIPPING_RATES.find(rate => totalWeight <= rate.maxWeight && rate.countries.includes("GB"));
+    // Worldwide fallback
+    const wwRate = SHIPPING_RATES.find(rate => totalWeight <= rate.maxWeight && rate.countries.length === 0);
+
+    // Only send up to 2 shipping options (Stripe will pick based on address)
+    const shipping_options = [];
+    if (ukRate) shipping_options.push({ shipping_rate: ukRate.rate });
+    if (wwRate) shipping_options.push({ shipping_rate: wwRate.rate });
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -59,6 +66,7 @@ exports.handler = async (event) => {
     });
 
     return { statusCode: 200, headers, body: JSON.stringify({ url: session.url }) };
+
   } catch (err) {
     console.error(err);
     return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
