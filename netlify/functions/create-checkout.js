@@ -13,7 +13,7 @@ const SHIPPING_RATES = [
   { shipping_rate: "shr_1SmgR0Lp5l1JmABsJVkE4raC" }, // 40 postcards UK
   { shipping_rate: "shr_1Smeq6Lp5l1JmABsxxy2qNRv" }, // 10 postcards WW
   { shipping_rate: "shr_1SmgQgLp5l1JmABssFDuJ3Nn" }, // 20 postcards WW
-  { shipping_rate: "shr_1SmgRJLp5l1JmABsc7qmBqit" }  // 40 postcards WW
+ 
 ];
 
 exports.handler = async (event) => {
