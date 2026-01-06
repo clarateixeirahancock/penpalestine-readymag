@@ -4,7 +4,7 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Single product with Stripe price ID
 const PRODUCTS = {
-  theydidntknowwewereseeds: { price: "price_1SltMXLp5l1JmABsJzREYzvaM" } // replace with your actual Stripe price ID
+  theydidntknowwewereseeds: { price: "price_1SltMXLp5l1JmABsZREYzvaM" } // replace with your actual Stripe price ID
 };
 
 // Single shipping rate per country
