@@ -2,10 +2,10 @@
 const Stripe = require("stripe");
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Products with weight in kg
+// Products with weights (kg)
 const PRODUCTS = {
   theydidntknowwewereseeds: { price: "price_1SltMXLp5l1JmABsZREYzvaM", weight: 0.05 },
-  another_product: { price: "price_XXXX", weight: 0.1 } // add more products as needed
+  another_product: { price: "price_XXXX", weight: 0.1 } // add more products if needed
 };
 
 // Shipping rates
@@ -27,7 +27,7 @@ exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers };
 
   try {
-    const { items } = JSON.parse(event.body || "{}");
+    const { items, shipping_country } = JSON.parse(event.body || "{}");
     if (!items || !items.length) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: "No items sent" }) };
     }
@@ -45,22 +45,21 @@ exports.handler = async (event) => {
       totalWeight += PRODUCTS[item.id].weight * item.quantity;
     });
 
-    // Find shipping rates that match weight
-    // UK first
-    const ukRate = SHIPPING_RATES.find(rate => totalWeight <= rate.maxWeight && rate.countries.includes("GB"));
-    // Worldwide fallback
-    const wwRate = SHIPPING_RATES.find(rate => totalWeight <= rate.maxWeight && rate.countries.length === 0);
+    // Select shipping rate based on weight and country
+    let shippingOption = SHIPPING_RATES.find(rate =>
+      totalWeight <= rate.maxWeight &&
+      (rate.countries.includes(shipping_country) || (rate.countries.length === 0 && shipping_country !== "GB"))
+    );
 
-    // Only send up to 2 shipping options (Stripe will pick based on address)
-    const shipping_options = [];
-    if (ukRate) shipping_options.push({ shipping_rate: ukRate.rate });
-    if (wwRate) shipping_options.push({ shipping_rate: wwRate.rate });
+    if (!shippingOption) {
+      shippingOption = SHIPPING_RATES[SHIPPING_RATES.length - 1]; // fallback
+    }
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items,
       mode: "payment",
-      shipping_options,
+      shipping_options: [{ shipping_rate: shippingOption.rate }],
       success_url: "https://your-site.com/success",
       cancel_url: "https://your-site.com/cancel"
     });
