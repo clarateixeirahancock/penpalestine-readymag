@@ -12,7 +12,7 @@ const GENERIC_PRICE_IDS = {
 
 // Define all your products locally with their weight (kg)
 const PRODUCTS = {
-  theydidntknowwewereseeds: { name: "Seed Pack", weight: 0.05 },
+  theydidntknowwewereseeds: { name: "theydidntknowwewereseeds", weight: 0.05 },
   clawsoffgaza: { name: "clawsoffgaza", weight: 0.05 },
   pickmixbundle: { name: "pick & mix bundle", weight: 0.1 },
   // Add more products as needed
