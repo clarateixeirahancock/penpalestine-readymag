@@ -1,23 +1,4 @@
-exports.handler = async function(event) {
-  const headers = {
-    "Access-Control-Allow-Origin": "*", // allow any origin
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS"
-  };
-
-  // Handle preflight OPTIONS request
-  if (event.httpMethod === "OPTIONS") {
-    return {
-      statusCode: 200,
-      headers,
-      body: "OK"
-    };
-  }
-
-  try {
-    // Your existing code
-
-    // File: netlify/functions/create-checkout.js
+// File: netlify/functions/create-checkout.js
 
 const Stripe = require("stripe");
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
@@ -48,20 +29,29 @@ const SHIPPING_RATES = [
 
 exports.handler = async function(event) {
   const headers = {
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": "*", // allow any origin; replace with your domain if needed
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "POST, OPTIONS"
   };
 
+  // Handle CORS preflight
   if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 200, headers };
+    return {
+      statusCode: 200,
+      headers,
+      body: "OK"
+    };
   }
 
   try {
     const { items, shipping_country } = JSON.parse(event.body || "{}");
 
     if (!items || items.length === 0) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: "No items sent" }) };
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: "No items sent" })
+      };
     }
 
     // Build line items
@@ -71,23 +61,4 @@ exports.handler = async function(event) {
 
       let priceId;
       if (product.weight <= 0.05) priceId = GENERIC_PRICE_IDS[10];
-      else if (product.weight <= 0.10) priceId = GENERIC_PRICE_IDS[20];
-      else priceId = GENERIC_PRICE_IDS[40];
-
-      return {
-        price: priceId,
-        quantity: item.quantity,
-        adjustable_quantity: { enabled: false },
-        metadata: { product_name: product.name, product_id: item.id }
-      };
-    });
-
-    // Total weight
-    let totalWeight = 0;
-    items.forEach(item => {
-      const product = PRODUCTS[item.id];
-      totalWeight += product.weight * item.quantity;
-    });
-
-    // Shipping rate
-    let shippingOpt
+      else if (product.weight <= 0.10) priceId = GENERIC_PRIC_
