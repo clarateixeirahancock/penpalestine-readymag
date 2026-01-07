@@ -119,30 +119,4 @@ fetch("https://penpalestine.netlify.app/.netlify/functions/create-checkout", {
 });
 
 
-    
-  const { items, shipping_country, cancel_url } = JSON.parse(event.body || "{}");
-
-const session = await stripe.checkout.sessions.create({
-  payment_method_types: ["card"],
-  line_items,
-  mode: "payment",
-  success_url: "https://penpalestine.netlify.app/success",
-  cancel_url: cancel_url || "https://penpalestine.netlify.app/cart"
-});
-
-
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ url: session.url })
-    };
-
-  } catch (err) {
-    console.error("Stripe error:", err);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: err.message })
-    };
-  }
 }; // <--- Make sure this closing brace and semicolon exist
