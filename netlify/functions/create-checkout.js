@@ -13,8 +13,8 @@ const GENERIC_PRICE_IDS = {
 // Define all your products locally with their weight (kg)
 const PRODUCTS = {
   theydidntknowwewereseeds: { name: "Seed Pack", weight: 0.05 },
-  clawsofffaza: { name: "clawsoffgaza", weight: 0.05 },
-  }
+  pickmixbundle: { name: "Pick & Mix Bundle", weight: 0.10 },
+  postcard40: { name: "Postcard Pack 40", weight: 0.20 }
   // Add more products as needed
 };
 
@@ -54,7 +54,7 @@ exports.handler = async function(event) {
       let priceId;
       if (product.weight <= 0.05) priceId = GENERIC_PRICE_IDS[10];
       else if (product.weight <= 0.10) priceId = GENERIC_PRICE_IDS[20];
-      else priceId = GENERIC_PRICE_IDS[30];
+      else priceId = GENERIC_PRICE_IDS[40];
 
       return {
         price: priceId,
