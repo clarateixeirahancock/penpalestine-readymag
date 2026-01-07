@@ -190,6 +190,13 @@ theformsofleavingandtheformsofreturning: { name: "theformsofleavingandtheformsof
 freepalestinev: { name: "freepalestinev", weight: 0.05 },
 theplacewhereolivetreesusedtogrow: { name: "theplacewhereolivetreesusedtogrow", weight: 0.05 },
 molecularintifada: { name: "molecularintifada", weight: 0.05 },
+  palestinesunbird: { name: "palestinesunbird", weight: 0.05 },
+  freegaza2: { name: "freegaza2", weight: 0.05 },
+  freegaza: { name: "freegaza", weight: 0.05 },
+  tomorrowisapalestinianday: { name: "tomorrowisapalestinianday", weight: 0.05 },
+  tearsforpalestine: { name: "tearsforpalestine", weight: 0.05 },
+
+
 
 
 
@@ -286,7 +293,7 @@ exports.handler = async function (event) {
   }
 });
       
-    });
+
 
     return {
       statusCode: 200,
