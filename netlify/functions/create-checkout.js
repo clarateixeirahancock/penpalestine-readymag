@@ -283,6 +283,7 @@ exports.handler = async function (event) {
       },
       success_url: "https://your-site.com/success",
       cancel_url: cancel_url || "https://my.readymag.com/edit/5931573/preview/clawsoffgaza/", // fallback if not sent
+        payment_intent_data: { 
         metadata: {
     items: JSON.stringify(items.map(item => ({
       id: item.id,
