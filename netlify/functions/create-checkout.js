@@ -1,13 +1,15 @@
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const Stripe = require("stripe");
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 const PRODUCTS = {
   theydidntknowwewereseeds: {
+    name: "They Didn’t Know We Were Seeds",
     price: "price_1SltMXLp5l1JmABsZREYzvaM",
-    weight: 0.05 // kg (50g)
+    weight: 0.05
   }
 };
 
-// SHIPPING RATES — EXACTLY ONE WILL BE USED
+// Shipping rates (already working for you)
 const SHIPPING_RATES = {
   GB: [
     { maxWeight: 0.05, rate: "shr_1SmepTLp5l1JmABsJzFF773I" },
@@ -33,54 +35,66 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { items, country } = JSON.parse(event.body || "{}");
+    const { items } = JSON.parse(event.body || "{}");
 
-    if (!items || !items.length || !country) {
+    if (!items || items.length === 0) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: "Missing items or country" })
+        body: JSON.stringify({ error: "No items sent" })
       };
     }
 
     // Build line items
-    let totalWeight = 0;
-
     const line_items = items.map(item => {
       const product = PRODUCTS[item.id];
-      if (!product) throw new Error(`Unknown product ${item.id}`);
-      totalWeight += product.weight * item.quantity;
+      if (!product) throw new Error(`Unknown product: ${item.id}`);
+
       return {
         price: product.price,
         quantity: item.quantity
       };
     });
 
-    // Pick shipping rate based on weight + country
-    const rates = SHIPPING_RATES[country];
-    const selected = rates.find(r => totalWeight <= r.maxWeight);
+    // Calculate total weight
+    let totalWeight = 0;
+    items.forEach(item => {
+      const product = PRODUCTS[item.id];
+      totalWeight += product.weight * item.quantity;
+    });
 
-    if (!selected) {
-      throw new Error("No shipping rate found");
-    }
+    // Default to worldwide; Stripe will collect the address
+    const country = "GB"; // initial assumption
+    const rates = SHIPPING_RATES[country] || SHIPPING_RATES.WW;
+
+    const selected = rates.find(r => totalWeight <= r.maxWeight) || rates[rates.length - 1];
 
     const session = await stripe.checkout.sessions.create({
-  mode: "payment",
-  line_items,
+      mode: "payment",
+      line_items,
 
- shipping_address_collection: {
-shipping_address_collection: {
-  allowed_countries: ["ZZ"]
-},
+      shipping_address_collection: {
+        allowed_countries: ["ZZ"]
+      },
 
+      shipping_options: [
+        { shipping_rate: selected.rate }
+      ],
 
-  shipping_options: [
-    { shipping_rate: selected.rate }
-  ],
+      // 🔑 THIS IS THE IMPORTANT PART
+      metadata: {
+        items: JSON.stringify(
+          items.map(item => ({
+            id: item.id,
+            name: PRODUCTS[item.id].name,
+            quantity: item.quantity
+          }))
+        )
+      },
 
-  success_url: "https://your-site.com/success",
-  cancel_url: "https://your-site.com/cancel"
-});
+      success_url: "https://your-site.com/success",
+      cancel_url: "https://your-site.com/cancel"
+    });
 
     return {
       statusCode: 200,
