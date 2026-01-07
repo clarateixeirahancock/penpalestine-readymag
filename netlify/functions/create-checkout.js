@@ -274,23 +274,24 @@ exports.handler = async function (event) {
 
     // Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["card"],
-      line_items,
-      shipping_options: [{ shipping_rate: shipping.rate }],
-      shipping_address_collection: {
-        allowed_countries: ["GB", "US", "CA", "AU", "NZ", "IE", "FR", "DE"]
-      },
-      success_url: "https://your-site.com/success",
-      cancel_url: cancel_url || "https://my.readymag.com/edit/5931573/preview/clawsoffgaza/", // fallback if not sent
-        payment_intent_data: { 
-        metadata: {
-    items: JSON.stringify(items.map(item => ({
-      id: item.id,
-      name: PRODUCTS[item.id].name,
-      weight: PRODUCTS[item.id].weight,
-      quantity: item.quantity
-    })))
+  mode: "payment",
+  payment_method_types: ["card"],
+  line_items,
+  shipping_options: [{ shipping_rate: shipping.rate }],
+  shipping_address_collection: {
+    allowed_countries: ["GB", "US", "CA", "AU", "NZ", "IE", "FR", "DE"]
+  },
+  success_url: "https://your-site.com/success",
+  cancel_url: cancel_url || "https://my.readymag.com/edit/5931573/preview/clawsoffgaza/",
+  payment_intent_data: { 
+    metadata: {
+      items: JSON.stringify(items.map(item => ({
+        id: item.id,
+        name: PRODUCTS[item.id].name,
+        weight: PRODUCTS[item.id].weight,
+        quantity: item.quantity
+      })))
+    }
   }
 });
       
