@@ -6,8 +6,8 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 // Three generic Stripe Price IDs for different weight tiers
 const GENERIC_PRICE_IDS = {
   10: "price_1SltMXLp5l1JmABsZREYzvaM", // e.g., up to 10 postcards / 0.05 kg
-  20: "price_1SmtmjLp5l1JmABsePebzdfJD", // e.g., up to 20 postcards / 0.10 kg
-  30: "price_1Smto4Lp5l1JmABsdtaQp2Ed"  // e.g., up to 40 postcards / 0.20 kg
+  20: "price_1SmtmjLp5l1JmABsePebzdfJ", // e.g., up to 20 postcards / 0.10 kg
+  40: "price_1Smto4Lp5l1JmABsdtaQp2Ed"  // e.g., up to 40 postcards / 0.20 kg
 };
 
 // Define all your products locally with their weight (kg)
