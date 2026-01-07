@@ -14,7 +14,7 @@ const GENERIC_PRICE_IDS = {
 const PRODUCTS = {
   theydidntknowwewereseeds: { name: "Seed Pack", weight: 0.05 },
   pickmixbundle: { name: "Pick & Mix Bundle", weight: 0.10 },
-  postcard40: { name: "Postcard Pack 40", weight: 0.20 }
+  postcard40: { name: "Postcard Pack 40", weight: 0.20 },
   clawsofffgaza: { name: " clawsofffgaza", weight: 0.05 },
 
   
