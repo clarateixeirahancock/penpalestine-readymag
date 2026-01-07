@@ -68,35 +68,4 @@ exports.handler = async function(event) {
     const totalWeight = items.reduce((sum, item) => {
       const product = PRODUCTS[item.id];
       return sum + product.weight * item.quantity;
-    }, 0);
-
-    // Determine shipping based on country and weight
-    const countryCode = shipping_country.toUpperCase();
-    let shippingOption = SHIPPING_RATES.find(rate =>
-      totalWeight <= rate.maxWeight &&
-      ((countryCode === "GB" && rate.country === "GB") ||
-       (countryCode !== "GB" && rate.country === "WW"))
-    );
-
-    if (!shippingOption) {
-      shippingOption = SHIPPING_RATES[SHIPPING_RATES.length - 1]; // fallback
-    }
-
-    // Create Stripe Checkout session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items,
-      mode: "payment",
-      shipping_options: [{ shipping_rate: shippingOption.shipping_rate }],
-      shipping_address_collection: { allowed_countries: ["GB", "US", "CA", "AU", "WW"] },
-      success_url: "https://your-site.com/success",
-      cancel_url: "https://your-site.com/cancel"
-    });
-
-    return { statusCode: 200, headers, body: JSON.stringify({ url: session.url }) };
-
-  } catch (err) {
-    console.error(err);
-    return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
-  }
-};
+    }, 0
