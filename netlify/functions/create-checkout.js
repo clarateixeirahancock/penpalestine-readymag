@@ -1,46 +1,43 @@
-// File: netlify/functions/create-checkout.js
+// File: create-checkout.js (Netlify function)
 
 const Stripe = require("stripe");
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Price tiers
+// Stripe Price IDs for different weight tiers
 const GENERIC_PRICE_IDS = {
-  10: "price_1SltMXLp5l1JmABsZREYzvaM",
-  20: "price_1SmtmjLp5l1JmABsePebzdfJ",
-  40: "price_1Smto4Lp5l1JmABsdtaQp2Ed"
+  10: "price_1SltMXLp5l1JmABsZREYzvaM", // up to 0.05 kg
+  20: "price_1SmtmjLp5l1JmABsePebzdfJ", // up to 0.10 kg
+  40: "price_1Smto4Lp5l1JmABsdtaQp2Ed"  // up to 0.20 kg
 };
 
-// Products
+// Products with weights
 const PRODUCTS = {
   theydidntknowwewereseeds: { name: "Seed Pack", weight: 0.05 },
   pickmixbundle: { name: "Pick & Mix Bundle", weight: 0.10 },
-  clawsoffgaza: { name: "clawsoffgaza", weight: 0.05 }
+  postcard40: { name: "Postcard Pack 40", weight: 0.20 },
+  clawsoffgaza: { name: "Claws Off Gaza", weight: 0.05 }
 };
 
-// Shipping rates
+// Shipping rates by weight + region
 const SHIPPING_RATES = [
-  { maxWeight: 0.05, country: "GB", shipping_rate: "shr_1SmepTLp5l1JmABsJzFF773I" },
-  { maxWeight: 0.10, country: "GB", shipping_rate: "shr_1Smes2Lp5l1JmABs2eSRdmI9" },
-  { maxWeight: 0.20, country: "GB", shipping_rate: "shr_1SmgR0Lp5l1JmABsJVkE4raC" },
-  { maxWeight: 0.05, country: "WW", shipping_rate: "shr_1Smeq6Lp5l1JmABsxxy2qNRv" },
-  { maxWeight: 0.10, country: "WW", shipping_rate: "shr_1SmgQgLp5l1JmABssFDuJ3Nn" },
-  { maxWeight: 0.20, country: "WW", shipping_rate: "shr_1SmgRJLp5l1JmABsc7qmBqit" }
+  { maxWeight: 0.05, region: "GB", rate: "shr_1SmepTLp5l1JmABsJzFF773I" },
+  { maxWeight: 0.10, region: "GB", rate: "shr_1Smes2Lp5l1JmABs2eSRdmI9" },
+  { maxWeight: 0.20, region: "GB", rate: "shr_1SmgR0Lp5l1JmABsJVkE4raC" },
+
+  { maxWeight: 0.05, region: "WW", rate: "shr_1Smeq6Lp5l1JmABsxxy2qNRv" },
+  { maxWeight: 0.10, region: "WW", rate: "shr_1SmgQgLp5l1JmABssFDuJ3Nn" },
+  { maxWeight: 0.20, region: "WW", rate: "shr_1SmgRJLp5l1JmABsc7qmBqit" }
 ];
 
-exports.handler = async function(event) {
+exports.handler = async function (event) {
   const headers = {
-    "Access-Control-Allow-Origin": "*", // allow any origin
+    "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "POST, OPTIONS"
   };
 
-  // CORS preflight
   if (event.httpMethod === "OPTIONS") {
-    return {
-      statusCode: 200,
-      headers,
-      body: "OK"
-    };
+    return { statusCode: 200, headers };
   }
 
   try {
@@ -50,11 +47,11 @@ exports.handler = async function(event) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: "No items sent" })
+        body: JSON.stringify({ error: "No items provided" })
       };
     }
 
-    // Line items
+    // Build Stripe line items
     const line_items = items.map(item => {
       const product = PRODUCTS[item.id];
       if (!product) throw new Error(`Unknown product ID: ${item.id}`);
@@ -66,57 +63,55 @@ exports.handler = async function(event) {
 
       return {
         price: priceId,
-        quantity: item.quantity,
-        adjustable_quantity: { enabled: false },
-        metadata: { product_name: product.name, product_id: item.id }
+        quantity: item.quantity
       };
     });
 
-    // Total weight
-    let totalWeight = 0;
-    items.forEach(item => {
+    // Calculate total shipment weight
+    const totalWeight = items.reduce((sum, item) => {
       const product = PRODUCTS[item.id];
-      totalWeight += product.weight * item.quantity;
-    });
+      return sum + product.weight * item.quantity;
+    }, 0);
 
-    // Shipping rate
-    let shippingOption = SHIPPING_RATES.find(rate =>
-      totalWeight <= rate.maxWeight &&
-      ((shipping_country === "GB" && rate.country === "GB") ||
-       (shipping_country !== "GB" && rate.country === "WW"))
+    const countryCode = (shipping_country || "GB").toUpperCase();
+    const region = countryCode === "GB" ? "GB" : "WW";
+
+    // Pick correct shipping rate
+    let shipping = SHIPPING_RATES.find(r =>
+      r.region === region && totalWeight <= r.maxWeight
     );
 
-    if (!shippingOption) {
-      shippingOption = SHIPPING_RATES
-        .filter(r => r.country === (shipping_country === "GB" ? "GB" : "WW"))
+    if (!shipping) {
+      shipping = SHIPPING_RATES
+        .filter(r => r.region === region)
         .slice(-1)[0];
     }
 
-    // Create Stripe session
+    // Create Stripe Checkout Session
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
+      line_items,
+      shipping_options: [{ shipping_rate: shipping.rate }],
+      shipping_address_collection: {
+        allowed_countries: ["GB", "US", "CA", "AU", "NZ", "IE", "FR", "DE"]
+      },
+      success_url: "https://your-site.com/success",
+      cancel_url: "https://your-site.com/cancel"
+    });
 
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ url: session.url })
+    };
 
-    const previousPage = document.referrer || "https://penpalestine.netlify.app/cart";
-
-fetch("https://penpalestine.netlify.app/.netlify/functions/create-checkout", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    shipping_country: document.getElementById("country").value,
-    items: [
-      { id: "clawsoffgaza", quantity: 1 }
-    ],
-    cancel_url: previousPage
-  })
-})
-.then(res => res.json())
-.then(data => {
-  if (data.url) window.location.href = data.url;
-  else alert(data.error || "Checkout failed");
-})
-.catch(err => {
-  console.error(err);
-  alert("Checkout failed");
-});
-
-
-}; // <--- Make sure this closing brace and semicolon exist
+  } catch (err) {
+    console.error("Checkout error:", err);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: err.message })
+    };
+  }
+};
