@@ -93,15 +93,43 @@ exports.handler = async function(event) {
     }
 
     // Create Stripe session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items,
-      mode: "payment",
-      shipping_options: [{ shipping_rate: shippingOption.shipping_rate }],
-      shipping_address_collection: { allowed_countries: ["GB", "US", "CA", "AU"] },
-      success_url: "https://your-site.com/success",
-      cancel_url: "https://your-site.com/cancel"
-    });
+
+
+    const previousPage = document.referrer || "https://penpalestine.netlify.app/cart";
+
+fetch("https://penpalestine.netlify.app/.netlify/functions/create-checkout", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    shipping_country: document.getElementById("country").value,
+    items: [
+      { id: "clawsoffgaza", quantity: 1 }
+    ],
+    cancel_url: previousPage
+  })
+})
+.then(res => res.json())
+.then(data => {
+  if (data.url) window.location.href = data.url;
+  else alert(data.error || "Checkout failed");
+})
+.catch(err => {
+  console.error(err);
+  alert("Checkout failed");
+});
+
+
+    
+  const { items, shipping_country, cancel_url } = JSON.parse(event.body || "{}");
+
+const session = await stripe.checkout.sessions.create({
+  payment_method_types: ["card"],
+  line_items,
+  mode: "payment",
+  success_url: "https://penpalestine.netlify.app/success",
+  cancel_url: cancel_url || "https://penpalestine.netlify.app/cart"
+});
+
 
     return {
       statusCode: 200,
