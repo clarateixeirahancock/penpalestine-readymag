@@ -69,8 +69,10 @@ exports.handler = async (event) => {
   line_items,
 
  shipping_address_collection: {
-  allowed_countries: ["GB", "US", "CA", "FR", "DE", "IT", "ES", "NL", "AU", "NZ"]
+shipping_address_collection: {
+  allowed_countries: ["ZZ"]
 },
+
 
   shipping_options: [
     { shipping_rate: selected.rate }
