@@ -15,7 +15,7 @@ const PRODUCTS = {
   theydidntknowwewereseeds: { name: "Seed Pack", weight: 0.05 },
   pickmixbundle: { name: "Pick & Mix Bundle", weight: 0.10 },
   postcard40: { name: "Postcard Pack 40", weight: 0.20 },
-  clawsofffgaza: { name: " clawsofffgaza", weight: 0.05 },
+  clawsofffgaza: { name: " clawsoffgaza", weight: 0.05 },
 
   
   // Add more products as needed
