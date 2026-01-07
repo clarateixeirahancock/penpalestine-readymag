@@ -3,15 +3,19 @@
 const Stripe = require("stripe");
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Single Stripe Price ID (generic product)
-const GENERIC_PRICE_ID = "price_1SltMXLp5l1JmABsZREYzvaM";
+// Three generic Stripe Price IDs for different weight tiers
+const GENERIC_PRICE_IDS = {
+  10: "price_10_ID", // e.g., up to 10 postcards / 0.05 kg
+  20: "price_20_ID", // e.g., up to 20 postcards / 0.10 kg
+  40: "price_40_ID"  // e.g., up to 40 postcards / 0.20 kg
+};
 
-// Define all your products locally with their weight
+// Define all your products locally with their weight (kg)
 const PRODUCTS = {
   theydidntknowwewereseeds: { name: "Seed Pack", weight: 0.05 },
   postcard20: { name: "Postcard Pack 20", weight: 0.10 },
-  postcard40: { name: "Postcard Pack 40", weight: 0.20 },
-  // Add all 200+ products here with their weight
+  postcard40: { name: "Postcard Pack 40", weight: 0.20 }
+  // Add more products as needed
 };
 
 // Shipping thresholds based on total weight
@@ -42,28 +46,32 @@ exports.handler = async function(event) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: "No items sent" }) };
     }
 
-    // Build line items with metadata
+    // Build line items with correct Price ID
     const line_items = items.map(item => {
       const product = PRODUCTS[item.id];
       if (!product) throw new Error(`Unknown product ID: ${item.id}`);
 
+      let priceId;
+      if (product.weight <= 0.05) priceId = GENERIC_PRICE_IDS[10];
+      else if (product.weight <= 0.10) priceId = GENERIC_PRICE_IDS[20];
+      else priceId = GENERIC_PRICE_IDS[30];
+
       return {
-        price: GENERIC_PRICE_ID,
+        price: priceId,
         quantity: item.quantity,
-        // include metadata so we know what the customer ordered
         adjustable_quantity: { enabled: false },
         metadata: { product_name: product.name, product_id: item.id }
       };
     });
 
-    // Calculate total weight for shipping
+    // Calculate total weight
     let totalWeight = 0;
     items.forEach(item => {
       const product = PRODUCTS[item.id];
       totalWeight += product.weight * item.quantity;
     });
 
-    // Pick the correct shipping rate
+    // Find correct shipping rate
     let shippingOption = SHIPPING_RATES.find(rate => 
       totalWeight <= rate.maxWeight &&
       ((shipping_country === "GB" && rate.country === "GB") ||
@@ -74,13 +82,13 @@ exports.handler = async function(event) {
       shippingOption = SHIPPING_RATES[SHIPPING_RATES.length - 1]; // fallback
     }
 
-    // Create the Stripe Checkout session
+    // Create Stripe Checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items,
       mode: "payment",
       shipping_options: [{ shipping_rate: shippingOption.shipping_rate }],
-      shipping_address_collection: { allowed_countries: ["GB", "US", "CA", "FR", "DE"] }, // add all allowed countries
+      shipping_address_collection: { allowed_countries: ["GB", "US", "CA", "FR", "DE"] }, // add more countries
       success_url: "https://your-site.com/success",
       cancel_url: "https://your-site.com/cancel"
     });
@@ -92,4 +100,3 @@ exports.handler = async function(event) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
   }
 };
-
