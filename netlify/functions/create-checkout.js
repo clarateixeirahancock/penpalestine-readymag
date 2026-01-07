@@ -1,18 +1,24 @@
-// netlify/functions/create-checkout.js
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const PRODUCTS = {
-  theydidntknowwewereseeds: { 
-    price: "price_1SltMXLp5l1JmABsZREYzvaM", // your Stripe price ID
-    weight: 0.05 // kg
-  },
-  // Add more products here if needed
+  theydidntknowwewereseeds: {
+    price: "price_1SltMXLp5l1JmABsZREYzvaM",
+    weight: 0.05 // kg (50g)
+  }
 };
 
-// Shipping rates: only one option per country to avoid dropdown
+// SHIPPING RATES — EXACTLY ONE WILL BE USED
 const SHIPPING_RATES = {
-  GB: "shr_1SmepTLp5l1JmABsJzFF773I",  // default UK rate
-  WW: "shr_1Smeq6Lp5l1JmABsxxy2qNRv"   // default Worldwide rate
+  GB: [
+    { maxWeight: 0.05, rate: "shr_1SmepTLp5l1JmABsJzFF773I" },
+    { maxWeight: 0.10, rate: "shr_1Smes2Lp5l1JmABs2eSRdmI9" },
+    { maxWeight: 0.20, rate: "shr_1SmgR0Lp5l1JmABsJVkE4raC" }
+  ],
+  WW: [
+    { maxWeight: 0.05, rate: "shr_1Smeq6Lp5l1JmABsxxy2qNRv" },
+    { maxWeight: 0.10, rate: "shr_1SmgQgLp5l1JmABssFDuJ3Nn" },
+    { maxWeight: 0.20, rate: "shr_1SmgRJLp5l1JmABsc7qmBqit" }
+  ]
 };
 
 exports.handler = async (event) => {
@@ -22,37 +28,62 @@ exports.handler = async (event) => {
     "Access-Control-Allow-Methods": "POST, OPTIONS"
   };
 
-  if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers };
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 200, headers };
+  }
 
   try {
-    const { items, country } = JSON.parse(event.body || "{}"); // country optional
-    if (!items || !items.length) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: "No items sent" }) };
+    const { items, country } = JSON.parse(event.body || "{}");
+
+    if (!items || !items.length || !country) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: "Missing items or country" })
+      };
     }
 
-    // Build line items and calculate total weight (optional)
+    // Build line items
+    let totalWeight = 0;
+
     const line_items = items.map(item => {
       const product = PRODUCTS[item.id];
-      if (!product) throw new Error(`Unknown product: ${item.id}`);
-      return { price: product.price, quantity: item.quantity };
+      if (!product) throw new Error(`Unknown product ${item.id}`);
+      totalWeight += product.weight * item.quantity;
+      return {
+        price: product.price,
+        quantity: item.quantity
+      };
     });
 
-    // Determine shipping based on country, default to GB
-    const shippingRateId = country === "WW" ? SHIPPING_RATES.WW : SHIPPING_RATES.GB;
+    // Pick shipping rate based on weight + country
+    const rates = SHIPPING_RATES[country];
+    const selected = rates.find(r => totalWeight <= r.maxWeight);
+
+    if (!selected) {
+      throw new Error("No shipping rate found");
+    }
 
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items,
       mode: "payment",
-      shipping_options: [{ shipping_rate: shippingRateId }],
+      line_items,
+      shipping_options: [{ shipping_rate: selected.rate }],
       success_url: "https://your-site.com/success",
       cancel_url: "https://your-site.com/cancel"
     });
 
-    return { statusCode: 200, headers, body: JSON.stringify({ url: session.url }) };
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ url: session.url })
+    };
 
   } catch (err) {
     console.error(err);
-    return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: err.message })
+    };
   }
 };
