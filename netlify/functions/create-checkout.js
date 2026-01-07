@@ -4,7 +4,7 @@ const Stripe = require("stripe");
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Single Stripe Price ID (generic product)
-const GENERIC_PRICE_ID = "price_YOUR_GENERIC_PRICE_ID";
+const GENERIC_PRICE_ID = "price_1SltMXLp5l1JmABsZREYzvaM";
 
 // Define all your products locally with their weight
 const PRODUCTS = {
