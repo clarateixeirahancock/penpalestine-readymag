@@ -65,12 +65,20 @@ exports.handler = async (event) => {
     }
 
     const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      line_items,
-      shipping_options: [{ shipping_rate: selected.rate }],
-      success_url: "https://your-site.com/success",
-      cancel_url: "https://your-site.com/cancel"
-    });
+  mode: "payment",
+  line_items,
+
+  shipping_address_collection: {
+    allowed_countries: ["GB", "US", "CA", "AU", "NZ", "EU"]
+  },
+
+  shipping_options: [
+    { shipping_rate: selected.rate }
+  ],
+
+  success_url: "https://your-site.com/success",
+  cancel_url: "https://your-site.com/cancel"
+});
 
     return {
       statusCode: 200,
