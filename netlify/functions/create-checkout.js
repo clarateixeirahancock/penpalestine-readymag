@@ -88,7 +88,7 @@ exports.handler = async function(event) {
       line_items,
       mode: "payment",
       shipping_options: [{ shipping_rate: shippingOption.shipping_rate }],
-      shipping_address_collection: { allowed_countries: ["ZZ"] }, // add more countries
+      shipping_address_collection: { allowed_countries: ["GB"] }, // add more countries
       success_url: "https://your-site.com/success",
       cancel_url: "https://your-site.com/cancel"
     });
