@@ -1,4 +1,23 @@
-// File: netlify/functions/create-checkout.js
+exports.handler = async function(event) {
+  const headers = {
+    "Access-Control-Allow-Origin": "*", // allow any origin
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS"
+  };
+
+  // Handle preflight OPTIONS request
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 200,
+      headers,
+      body: "OK"
+    };
+  }
+
+  try {
+    // Your existing code
+
+    // File: netlify/functions/create-checkout.js
 
 const Stripe = require("stripe");
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
