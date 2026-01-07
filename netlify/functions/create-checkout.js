@@ -41,7 +41,7 @@ exports.handler = async function (event) {
   }
 
   try {
-    const { items, shipping_country } = JSON.parse(event.body || "{}");
+    const { items, shipping_country, cancel_url } = JSON.parse(event.body || "{}");
 
     if (!items || items.length === 0) {
       return {
@@ -97,7 +97,7 @@ exports.handler = async function (event) {
         allowed_countries: ["GB", "US", "CA", "AU", "NZ", "IE", "FR", "DE"]
       },
       success_url: "https://your-site.com/success",
-      cancel_url: "https://your-site.com/cancel"
+      cancel_url: cancel_url || "https://your-site.com/cart" // fallback if not sent
     });
 
     return {
