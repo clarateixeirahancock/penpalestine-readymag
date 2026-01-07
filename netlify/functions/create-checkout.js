@@ -3,14 +3,14 @@
 const Stripe = require("stripe");
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Three generic Stripe Price IDs for different weight tiers
+// Generic Stripe Price IDs for different weight tiers
 const GENERIC_PRICE_IDS = {
-  10: "price_1SltMXLp5l1JmABsZREYzvaM", // e.g., up to 10 postcards / 0.05 kg
-  20: "price_1SmtmjLp5l1JmABsePebzdfJ", // e.g., up to 20 postcards / 0.10 kg
-  40: "price_1Smto4Lp5l1JmABsdtaQp2Ed"  // e.g., up to 40 postcards / 0.20 kg
+  10: "price_1SltMXLp5l1JmABsZREYzvaM", // up to 10 postcards / 0.05 kg
+  20: "price_1SmtmjLp5l1JmABsePebzdfJ", // up to 20 postcards / 0.10 kg
+  40: "price_1Smto4Lp5l1JmABsdtaQp2Ed"  // up to 40 postcards / 0.20 kg
 };
 
-// Define all your products locally with their weight (kg)
+// Define products with their weight (kg)
 const PRODUCTS = {
   theydidntknowwewereseeds: { name: "Seed Pack", weight: 0.05 },
   clawsoffgaza: { name: "clawsoffgaza", weight: 0.10 },
@@ -45,7 +45,11 @@ exports.handler = async function(event) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: "No items sent" }) };
     }
 
-    // Build line items with correct Price ID
+    if (!shipping_country) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: "No shipping country provided" }) };
+    }
+
+    // Build line items
     const line_items = items.map(item => {
       const product = PRODUCTS[item.id];
       if (!product) throw new Error(`Unknown product ID: ${item.id}`);
@@ -53,7 +57,7 @@ exports.handler = async function(event) {
       let priceId;
       if (product.weight <= 0.05) priceId = GENERIC_PRICE_IDS[10];
       else if (product.weight <= 0.10) priceId = GENERIC_PRICE_IDS[20];
-      else priceId = GENERIC_PRICE_IDS[30];
+      else priceId = GENERIC_PRICE_IDS[40];
 
       return {
         price: priceId,
@@ -70,7 +74,7 @@ exports.handler = async function(event) {
       totalWeight += product.weight * item.quantity;
     });
 
-    // Find correct shipping rate
+    // Select shipping rate based on country and weight
     let shippingOption = SHIPPING_RATES.find(rate => 
       totalWeight <= rate.maxWeight &&
       ((shipping_country === "GB" && rate.country === "GB") ||
@@ -87,15 +91,5 @@ exports.handler = async function(event) {
       line_items,
       mode: "payment",
       shipping_options: [{ shipping_rate: shippingOption.shipping_rate }],
-      shipping_address_collection: { allowed_countries: ["GB", "US", "CA", "FR", "DE"] }, // add more countries
+      // Remove shipping_address_collection so country is fixed
       success_url: "https://your-site.com/success",
-      cancel_url: "https://your-site.com/cancel"
-    });
-
-    return { statusCode: 200, headers, body: JSON.stringify({ url: session.url }) };
-
-  } catch (err) {
-    console.error(err);
-    return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
-  }
-};
