@@ -13,8 +13,8 @@ const GENERIC_PRICE_IDS = {
 // Products with weights
 const PRODUCTS = {
   theydidntknowwewereseeds: { name: "Seed Pack", weight: 0.05 },
-  pickmixbundle: { name: "Pick & Mix Bundle", weight: 0.10 },
-  postcard40: { name: "Postcard Pack 40", weight: 0.20 },
+  pickmixbundle: { name: "pickmixbundle", weight: 0.10 },
+  colelctionbox: { name: "collectionbox", weight: 0.20 },
   clawsoffgaza: { name: "Claws Off Gaza", weight: 0.05 },
   fragile: { name: "fragile", weight: 0.05 },
 fromthetilestothepixels1: { name: "fromthetilestothepixels1", weight: 0.05 },
@@ -195,6 +195,28 @@ molecularintifada: { name: "molecularintifada", weight: 0.05 },
   freegaza: { name: "freegaza", weight: 0.05 },
   tomorrowisapalestinianday: { name: "tomorrowisapalestinianday", weight: 0.05 },
   tearsforpalestine: { name: "tearsforpalestine", weight: 0.05 },
+  palestinalibrei: { name: "palestinalibrei", weight: 0.05 },
+  freepalestineiv: { name: " freepalestineiv", weight: 0.05 },
+  flowerofpalestine: { name: "flowerofpalestine", weight: 0.05 },
+  saoirseDonFalaistinii : { name: "saoirsedonfalaistinii", weight: 0.05 },
+  saoirseDonFalaistini : { name: "saoirsedonfalaistini", weight: 0.05 },
+  wavesofsolidarity : { name: " avesofsolidarity", weight: 0.05 },
+  palestinianman : { name: "palestinianman", weight: 0.05 },
+keffiyehiii : { name: "keffiyehiii", weight: 0.05 },
+  birdchirping : { name: "birdchirping", weight: 0.05 },
+  fatheri : { name: "fatheri", weight: 0.05 },
+  landofsadoranges : { name: "landofsadoranges", weight: 0.05 },
+  lastautumn : { name: "lastautumn", weight: 0.05 },
+  longlivetheresistance : { name: "longlivetheresistance", weight: 0.05 },
+  threadsofliberty : { name: "threadsofliberty", weight: 0.05 },
+  palestinalibreii : { name: "palestinalibreii", weight: 0.05 },
+  keffiyehxlefkaralace : { name: "keffiyehxlefkaralace", weight: 0.05 },
+ palestinei : { name: "palestinei", weight: 0.05 },
+   keffiyehi : { name: "keffiyehi", weight: 0.05 },
+  
+  
+
+
 
 
 
