@@ -213,6 +213,11 @@ keffiyehiii : { name: "keffiyehiii", weight: 0.05 },
   keffiyehxlefkaralace : { name: "keffiyehxlefkaralace", weight: 0.05 },
  palestinei : { name: "palestinei", weight: 0.05 },
    keffiyehi : { name: "keffiyehi", weight: 0.05 },
+   palestinewillriseagain : { name: "palestinewillriseagain", weight: 0.05 },
+  freepalestinevi : { name: "freepalestinevi", weight: 0.05 },
+  theytriedtoburyus : { name: "theytriedtoburyus", weight: 0.05 },
+  
+
   
   
 
